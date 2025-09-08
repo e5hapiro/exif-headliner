@@ -10,6 +10,8 @@ from pathlib import Path
 ARCHIVE_ROOT = Path("/Volumes/photo/shapfam/")
 #ARCHIVE_ROOT = Path("/Volumes/photo/shapfam-iptc-modify/")
 TEMPLATE_FILE = "/Volumes/photo/other/tools/python/exif/exif-headliner/metadata_template.json"
+CHECKPOINT_FILENAME = ".processed_marker"  # can add prefix/suffix if needed
+
 
 def load_template(template_file):
     """Load JSON template containing desired metadata fields."""
@@ -169,6 +171,13 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
         except ValueError:
             relative_path = root_path  # This handles the case where archive_dir is the current directory.
 
+        # ✅ Use relative path for completion check
+        if is_directory_completed(relative_path):
+            if debug:
+                print(f"[SKIP] Already processed: {relative_path}")
+            dirs[:] = []  # prevent descending further
+            continue
+        
         if "received" in str(relative_path).lower():
             print(f"Skipping subdirectory '{root}' due to 'Received' keyword.")
             dirs[:] = []
@@ -194,6 +203,43 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
                     year, headline = extract_year_and_headline(file_path.relative_to(archive_dir), debug=debug)
                 
                 update_metadata(file_path, template, year, headline, debug)
+
+        # ✅ Mark directory as completed after processing all files
+        mark_directory_completed(relative_path)
+
+
+def is_directory_completed(directory: str) -> bool:
+    """
+    Returns True if the checkpoint file exists in the directory.
+    """
+    marker_path = os.path.join(directory, CHECKPOINT_FILENAME)
+    return os.path.exists(marker_path)
+
+
+def mark_directory_completed(directory: str):
+    """
+    Creates a marker file in the given directory to indicate processing is done.
+    """
+    marker_path = os.path.join(directory, CHECKPOINT_FILENAME)
+    with open(marker_path, "w") as f:
+        f.write("processed\n")
+    print(f"[INFO] Marked completed: {directory}")
+
+
+def cleanup_checkpoints(root_directory: str):
+    """
+    Recursively deletes all checkpoint files under the given root directory.
+    """
+    removed = 0
+    for dirpath, _, filenames in os.walk(root_directory):
+        for filename in filenames:
+            if filename == CHECKPOINT_FILENAME:
+                marker_path = os.path.join(dirpath, filename)
+                os.remove(marker_path)
+                removed += 1
+    print(f"[INFO] Removed {removed} checkpoint files under {root_directory}")
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update image metadata based on directory structure.")
@@ -228,3 +274,6 @@ if __name__ == "__main__":
     print(f"Processing directory: {target_dir}")
     # This now calls the correct, full version of the function.
     traverse_and_update(target_dir, template, debug=args.debug)
+
+    # Cleanup checkpoints
+    cleanup_checkpoints(target_dir)
