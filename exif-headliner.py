@@ -7,8 +7,8 @@ import tempfile
 from pathlib import Path
 
 # --- FIXED ROOT DIRECTORY ---
-ARCHIVE_ROOT = Path("/Volumes/photo/shapfam/")
-#ARCHIVE_ROOT = Path("/Volumes/photo/shapfam-iptc-modify/")
+#ARCHIVE_ROOT = Path("/Volumes/photo/shapfam/")
+ARCHIVE_ROOT = Path("/Volumes/photo/shapfam-iptc-modify/")
 TEMPLATE_FILE = "/Volumes/photo/other/tools/python/exif/exif-headliner/metadata_template.json"
 CHECKPOINT_FILENAME = ".processed_marker"  # can add prefix/suffix if needed
 
@@ -161,7 +161,6 @@ def update_metadata(file_path: Path, template, year, headline, debug: bool = Fal
             except FileNotFoundError:
                 print("Error: 'exiftool' command not found. Please ensure it is installed and in your PATH.")
 
-# This is the correct, full version of the function
 def traverse_and_update(archive_dir, template, debug: bool = False):
     """Walk through archive and update files as needed."""
     for root, dirs, files in os.walk(archive_dir):
@@ -171,8 +170,8 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
         except ValueError:
             relative_path = root_path  # This handles the case where archive_dir is the current directory.
 
-        # ✅ Use relative path for completion check
-        if is_directory_completed(relative_path):
+        # ✅ Use root_path (real filesystem path) for completion check
+        if is_directory_completed(root_path):
             if debug:
                 print(f"[SKIP] Already processed: {relative_path}")
             dirs[:] = []  # prevent descending further
@@ -190,14 +189,14 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
             continue
         
         for file in files:
-            if file.lower().endswith((".nef", ".cr3", ".psd", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".heic", ".heif", ".dng", ".avif", ".mov", ".mp4", ".m4a")):
+            if file.lower().endswith((
+                ".nef", ".cr3", ".psd", ".jpg", ".jpeg", ".png", ".tif", ".tiff",
+                ".heic", ".heif", ".dng", ".avif", ".mov", ".mp4", ".m4a"
+            )):
                 file_path = root_path / file
                 
                 # Check if we're using the current directory as the root
                 if archive_dir == Path.cwd():
-                    # If so, we need to base the relative path on the current directory for headline extraction
-                    # The logic in extract_year_and_headline expects a path relative to the root being processed.
-                    # We can pass the full path and let the function handle it.
                     year, headline = extract_year_and_headline(file_path, debug=debug)
                 else:
                     year, headline = extract_year_and_headline(file_path.relative_to(archive_dir), debug=debug)
@@ -205,40 +204,38 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
                 update_metadata(file_path, template, year, headline, debug)
 
         # ✅ Mark directory as completed after processing all files
-        mark_directory_completed(relative_path)
+        mark_directory_completed(root_path)
 
 
-def is_directory_completed(directory: str) -> bool:
+def is_directory_completed(directory: Path) -> bool:
     """
     Returns True if the checkpoint file exists in the directory.
     """
-    marker_path = os.path.join(directory, CHECKPOINT_FILENAME)
-    return os.path.exists(marker_path)
+    marker_path = directory / CHECKPOINT_FILENAME
+    return marker_path.exists()
 
 
-def mark_directory_completed(directory: str):
+def mark_directory_completed(directory: Path):
     """
     Creates a marker file in the given directory to indicate processing is done.
     """
-    marker_path = os.path.join(directory, CHECKPOINT_FILENAME)
-    with open(marker_path, "w") as f:
-        f.write("processed\n")
+    marker_path = directory / CHECKPOINT_FILENAME
+    marker_path.write_text("processed\n", encoding="utf-8")
     print(f"[INFO] Marked completed: {directory}")
 
 
-def cleanup_checkpoints(root_directory: str):
+def cleanup_checkpoints(root_directory: Path):
     """
     Recursively deletes all checkpoint files under the given root directory.
     """
     removed = 0
-    for dirpath, _, filenames in os.walk(root_directory):
-        for filename in filenames:
-            if filename == CHECKPOINT_FILENAME:
-                marker_path = os.path.join(dirpath, filename)
-                os.remove(marker_path)
-                removed += 1
+    for marker_path in root_directory.rglob(CHECKPOINT_FILENAME):
+        try:
+            marker_path.unlink()
+            removed += 1
+        except FileNotFoundError:
+            continue
     print(f"[INFO] Removed {removed} checkpoint files under {root_directory}")
-
 
 
 if __name__ == "__main__":
