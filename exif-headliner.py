@@ -204,7 +204,9 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
                 update_metadata(file_path, template, year, headline, debug)
 
         # ✅ Mark directory as completed after processing all files
-        mark_directory_completed(relative_path, archive_dir)
+        # Only mark non-root directories
+        if relative_path != Path("."):
+            mark_directory_completed(relative_path, archive_dir)
 
 
 def is_directory_completed(relative_path: Path, root: Path) -> bool:
