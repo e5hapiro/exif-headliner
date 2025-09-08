@@ -1,3 +1,37 @@
+#!/usr/bin/env python3
+"""
+EXIF Headliner - Automated Metadata Management Tool
+
+This script processes image files and updates their EXIF/IPTC metadata based on 
+directory structure patterns. It extracts year and headline information from 
+folder names and applies metadata templates to ensure consistent tagging.
+
+Author: Edmond Shapiro
+Version: 1.0.2
+Created: 5 September 2025
+Last Modified: 8 September 2025
+
+Dependencies:
+    - exiftool (external command-line tool)
+    - Python 3.6+ with standard library modules
+
+Usage:
+    python exif-headliner.py --directory "2007 Print Quality"
+    python exif-headliner.py --current --debug
+
+Version History:
+    1.0.0 - Initial release
+    1.0.1 - Bug fixes and stability improvements
+    1.0.2 - Added version tracking and documentation headers
+    1.0.3 - Added checkpoint file to prevent duplicate processing of directories
+"""
+
+__version__ = "1.0.3"
+__author__ = "Edmond Shapiro"
+__email__ = "eshapiro@gmail.com"
+__license__ = "MIT"  
+__status__ = "Production"  # Development/Beta/Production
+
 import os
 import re
 import json
@@ -7,8 +41,8 @@ import tempfile
 from pathlib import Path
 
 # --- FIXED ROOT DIRECTORY ---
-#ARCHIVE_ROOT = Path("/Volumes/photo/shapfam/")
-ARCHIVE_ROOT = Path("/Volumes/photo/shapfam-iptc-modify/")
+ARCHIVE_ROOT = Path("/Volumes/photo/shapfam/")
+#ARCHIVE_ROOT = Path("/Volumes/photo/shapfam-iptc-modify/")
 TEMPLATE_FILE = "/Volumes/photo/other/tools/python/exif/exif-headliner/metadata_template.json"
 CHECKPOINT_FILENAME = ".processed_marker"  # can add prefix/suffix if needed
 
@@ -243,7 +277,17 @@ def cleanup_checkpoints(root_directory: Path):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Update image metadata based on directory structure.")
+    parser = argparse.ArgumentParser(
+        description="Update image metadata based on directory structure.",
+        epilog=f"EXIF Headliner v{__version__} - Automated Metadata Management Tool"
+    )
+    
+    # Add version argument
+    parser.add_argument(
+        "--version", 
+        action="version", 
+        version=f"%(prog)s {__version__}"
+    )
     
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
@@ -256,7 +300,7 @@ if __name__ == "__main__":
         help="Use the current working directory as the root."
     )
     
-    parser.add_argument("--debug", action="store_true", help="Enable debug mode (print changes, don’t write).")
+    parser.add_argument("--debug", action="store_true", help="Enable debug mode (print changes, don't write).")
     args = parser.parse_args()
 
     # The logic to determine the target directory remains the same.
