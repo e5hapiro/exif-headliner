@@ -171,7 +171,7 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
             relative_path = root_path  # This handles the case where archive_dir is the current directory.
 
         # ✅ Use root_path (real filesystem path) for completion check
-        if is_directory_completed(root_path):
+        if is_directory_completed(relative_path, archive_dir):
             if debug:
                 print(f"[SKIP] Already processed: {relative_path}")
             dirs[:] = []  # prevent descending further
@@ -204,24 +204,26 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
                 update_metadata(file_path, template, year, headline, debug)
 
         # ✅ Mark directory as completed after processing all files
-        mark_directory_completed(root_path)
+        mark_directory_completed(relative_path, archive_dir)
 
 
-def is_directory_completed(directory: Path) -> bool:
+def is_directory_completed(relative_path: Path, root: Path) -> bool:
     """
     Returns True if the checkpoint file exists in the directory.
     """
-    marker_path = directory / CHECKPOINT_FILENAME
+    marker_path = root / relative_path / CHECKPOINT_FILENAME
     return marker_path.exists()
 
 
-def mark_directory_completed(directory: Path):
+def mark_directory_completed(relative_path: Path, root: Path):
     """
     Creates a marker file in the given directory to indicate processing is done.
     """
-    marker_path = directory / CHECKPOINT_FILENAME
-    marker_path.write_text("processed\n", encoding="utf-8")
-    print(f"[INFO] Marked completed: {directory}")
+    marker_path = root / relative_path / CHECKPOINT_FILENAME
+    with open(marker_path, "w") as f:
+        f.write("processed\n")
+    print(f"[INFO] Marked completed: {relative_path}")
+
 
 
 def cleanup_checkpoints(root_directory: Path):
