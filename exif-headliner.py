@@ -223,9 +223,14 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
             continue
         
         for file in files:
+#            if file.lower().endswith((
+#                ".nef", ".cr3", ".psd", ".jpg", ".jpeg", ".png", ".tif", ".tiff",
+#                ".heic", ".heif", ".dng", ".avif", ".mov", ".mp4", ".m4a"
+#            )):
+
             if file.lower().endswith((
                 ".nef", ".cr3", ".psd", ".jpg", ".jpeg", ".png", ".tif", ".tiff",
-                ".heic", ".heif", ".dng", ".avif", ".mov", ".mp4", ".m4a"
+                ".heic", ".heif", ".dng", ".avif", ".mp4", ".m4a"
             )):
                 file_path = root_path / file
                 
