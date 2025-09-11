@@ -38,6 +38,7 @@ import json
 import argparse
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 # --- FIXED ROOT DIRECTORY ---
@@ -91,7 +92,7 @@ def get_current_metadata_from_cli(file_path: Path):
             files_to_read.append(str(xmp_file_path))
         
         cmd = ["exiftool", "-j", "-m"] + files_to_read
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=15)
         
         metadata_list = json.loads(result.stdout)
         merged_metadata = {}
@@ -185,7 +186,7 @@ def update_metadata(file_path: Path, template, year, headline, debug: bool = Fal
                     json.dump(json_data, temp_f)
                     temp_f.flush()
                     cmd_args = ["exiftool", f"-json={temp_f.name}", "-overwrite_original", "-m", str(file_path)]
-                    result = subprocess.run(cmd_args, check=True, capture_output=True, text=True)
+                    result = subprocess.run(cmd_args, check=True, capture_output=True, text=True, timeout=15)
                     print(f"Updated {file_path}")
                     if result.stdout.strip():
                         print(result.stdout.strip())
@@ -241,6 +242,7 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
                     year, headline = extract_year_and_headline(file_path.relative_to(archive_dir), debug=debug)
                 
                 update_metadata(file_path, template, year, headline, debug)
+                time.sleep(0.1)
 
         # ✅ Mark directory as completed after processing all files
         # Only mark non-root directories
