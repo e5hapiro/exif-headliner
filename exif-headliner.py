@@ -7,9 +7,9 @@ directory structure patterns. It extracts year and headline information from
 folder names and applies metadata templates to ensure consistent tagging.
 
 Author: Edmond Shapiro
-Version: 1.0.2
+Version: 1.0.4
 Created: 5 September 2025
-Last Modified: 8 September 2025
+Last Modified: 13 September 2025
 
 Dependencies:
     - exiftool (external command-line tool)
@@ -24,6 +24,7 @@ Version History:
     1.0.1 - Bug fixes and stability improvements
     1.0.2 - Added version tracking and documentation headers
     1.0.3 - Added checkpoint file to prevent duplicate processing of directories
+    1.0.4 - Added support for more file types and metadata fields
 """
 
 __version__ = "1.0.4"
