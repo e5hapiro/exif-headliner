@@ -26,7 +26,7 @@ Version History:
     1.0.3 - Added checkpoint file to prevent duplicate processing of directories
 """
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 __author__ = "Edmond Shapiro"
 __email__ = "eshapiro@gmail.com"
 __license__ = "MIT"  
