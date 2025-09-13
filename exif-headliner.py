@@ -36,16 +36,52 @@ import os
 import re
 import json
 import argparse
+import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
 
 # --- FIXED ROOT DIRECTORY ---
-ARCHIVE_ROOT = Path("/Volumes/photo/shapfam/")
+SMB_URL = "smb://edmonds@SFDS920/photo"
+VOLUME_PATH = "/Volumes/photo"
+ARCHIVE_ROOT = Path(VOLUME_PATH + "/shapfam/")
 #ARCHIVE_ROOT = Path("/Volumes/photo/shapfam-iptc-modify/")
 TEMPLATE_FILE = "/Volumes/photo/other/tools/python/exif/exif-headliner/metadata_template.json"
 CHECKPOINT_FILENAME = ".processed_marker"  # can add prefix/suffix if needed
+
+
+
+# ---- Add to your imports
+
+def ensure_photo_volume_mounted(volume_path=VOLUME_PATH, smb_url=SMB_URL):
+    """
+    Ensure the /Volumes/photo/ share is mounted on macOS. 
+    If not, attempt to open/mount it using the SMB URL.
+    """
+    if not os.path.exists(volume_path):
+        print(f"[INFO] {volume_path} not found. Attempting to mount via Finder.")
+        # Use 'open' to prompt Finder to mount the share; replace with correct SMB URL if needed
+        try:
+            # This will prompt for credentials if it's not saved in Keychain
+            subprocess.run(["open", smb_url], check=True)
+            # Wait for the mount to finish
+            print(f"[INFO] Waiting for {volume_path} to become available...")
+            for i in range(20):  # wait up to 10 seconds
+                time.sleep(0.5)
+                if os.path.exists(volume_path):
+                    print(f"[INFO] {volume_path} mounted successfully.")
+                    return True
+            print(f"[ERROR] {volume_path} did not appear after mounting attempt.")
+        except Exception as e:
+            print(f"[ERROR] Failed to mount SMB share: {e}")
+            return False
+    else:
+        print(f"[INFO] {volume_path} is already mounted.")
+        return True
+
+    return os.path.exists(volume_path)
 
 
 def load_template(template_file):
@@ -309,6 +345,11 @@ if __name__ == "__main__":
     
     parser.add_argument("--debug", action="store_true", help="Enable debug mode (print changes, don't write).")
     args = parser.parse_args()
+
+    # Ensure the volume is mounted
+    if not ensure_photo_volume_mounted():
+        print("Error: Volume not mounted. Please check your network connection and try again.")
+        exit(1)
 
     # The logic to determine the target directory remains the same.
     if args.current:
