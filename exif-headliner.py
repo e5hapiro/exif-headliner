@@ -53,8 +53,33 @@ TEMPLATE_FILE = "/Volumes/photo/other/tools/python/exif/exif-headliner/metadata_
 CHECKPOINT_FILENAME = ".processed_marker"  # can add prefix/suffix if needed
 
 
+def is_volume_responsive(volume_path, timeout=5):
+    try:
+        # Try to list the directory with a timeout
+        subprocess.run(['ls', volume_path], timeout=timeout, check=True)
+        return True
+    except subprocess.TimeoutExpired:
+        print(f"Timeout: {volume_path} is unresponsive.")
+        return False
+    except subprocess.CalledProcessError:
+        print(f"Error: Problem accessing {volume_path}.")
+        return False
 
-# ---- Add to your imports
+def force_unmount(volume_path):
+    # Try diskutil force unmount
+    try:
+        subprocess.run(['diskutil', 'unmount', 'force', volume_path], check=True)
+    except subprocess.CalledProcessError:
+        # Try umount -f as fallback
+        subprocess.run(['umount', '-f', volume_path])
+
+def remount_smb(share_url, mount_point):
+    # share_url: "smb://user:pass@server/share"
+    if not os.path.exists(mount_point):
+        os.makedirs(mount_point)
+    subprocess.run(['mount_smbfs', share_url, mount_point])
+
+
 
 def ensure_photo_volume_mounted(volume_path=VOLUME_PATH, smb_url=SMB_URL):
     """
@@ -267,8 +292,8 @@ def traverse_and_update(archive_dir, template, debug: bool = False):
 #            )):
 
             if file.lower().endswith((
-                ".nef", ".cr3", ".psd", ".jpg", ".jpeg", ".png", ".tif", ".tiff",
-                ".heic", ".heif", ".dng", ".avif", ".mp4", ".m4a"
+                ".nef", ".cr3", ".jpg", ".jpeg", ".png", ".tif", ".tiff",
+                ".heic", ".heif", ".dng", ".avif", ".m4a"
             )):
                 file_path = root_path / file
                 
@@ -347,6 +372,9 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="Enable debug mode (print changes, don't write).")
     args = parser.parse_args()
 
+    if not is_volume_responsive(VOLUME_PATH):
+        force_unmount(VOLUME_PATH)
+        # remount_smb("smb://user:pass@server/share", VOLUME_PATH)  # Uncomment and fill in to remount
     # Ensure the volume is mounted
     if not ensure_photo_volume_mounted():
         print("Error: Volume not mounted. Please check your network connection and try again.")
